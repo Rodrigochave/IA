@@ -1,12 +1,15 @@
 import pandas as pd
 from collections import deque
 import heapq
+from copy import deepcopy
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
 
 # ==========================
-# 1. Cargar laberinto desde Excel
+# 1. Cargar laberinto desde CSV
 # ==========================
-laberinto = pd.read_csv("laberinto.csv", header=None)
-laberinto = laberinto.values  # convertir a matriz (numpy array)
+df = pd.read_csv("C:/Users/Rorro/Documents/GitHub/IA/1er Parcial/laberinto.csv", header=None)
+laberinto = df.values.tolist()
 
 # ==========================
 # 2. Detectar inicio (S) y fin (E)
@@ -40,13 +43,12 @@ def dfs(laberinto, inicio, fin):
             vecino = (nodo[0]+mov[0], nodo[1]+mov[1])
             if (0 <= vecino[0] < len(laberinto) and
                 0 <= vecino[1] < len(laberinto[0]) and
-                laberinto[vecino[0]][vecino[1]] != 1 and
+                str(laberinto[vecino[0]][vecino[1]]) != "1" and
                 vecino not in visitados):
                 stack.append(vecino)
                 visitados.add(vecino)
                 padre[vecino] = nodo
 
-    # reconstruir camino
     camino = []
     actual = fin
     while actual:
@@ -70,13 +72,12 @@ def bfs(laberinto, inicio, fin):
             vecino = (nodo[0]+mov[0], nodo[1]+mov[1])
             if (0 <= vecino[0] < len(laberinto) and
                 0 <= vecino[1] < len(laberinto[0]) and
-                laberinto[vecino[0]][vecino[1]] != 1 and
+                str(laberinto[vecino[0]][vecino[1]]) != "1" and
                 vecino not in visitados):
                 cola.append(vecino)
                 visitados.add(vecino)
                 padre[vecino] = nodo
 
-    # reconstruir camino
     camino = []
     actual = fin
     while actual:
@@ -88,7 +89,7 @@ def bfs(laberinto, inicio, fin):
 # 6. A* (Heurística Manhattan)
 # ==========================
 def heuristica(a, b):
-    return abs(a[0]-b[0]) + abs(a[1]-b[1])  # distancia Manhattan
+    return abs(a[0]-b[0]) + abs(a[1]-b[1])
 
 def a_star(laberinto, inicio, fin):
     open_set = []
@@ -104,7 +105,7 @@ def a_star(laberinto, inicio, fin):
             vecino = (nodo[0]+mov[0], nodo[1]+mov[1])
             if (0 <= vecino[0] < len(laberinto) and
                 0 <= vecino[1] < len(laberinto[0]) and
-                laberinto[vecino[0]][vecino[1]] != 1):
+                str(laberinto[vecino[0]][vecino[1]]) != "1"):
                 costo = g[nodo] + 1
                 if vecino not in g or costo < g[vecino]:
                     g[vecino] = costo
@@ -112,7 +113,6 @@ def a_star(laberinto, inicio, fin):
                     heapq.heappush(open_set, (f, vecino))
                     padre[vecino] = nodo
 
-    # reconstruir camino
     camino = []
     actual = fin
     while actual:
@@ -121,17 +121,49 @@ def a_star(laberinto, inicio, fin):
     return camino[::-1]
 
 # ==========================
-# 7. Probar algoritmos
+# 7. Guardar recorridos en Excel con colores
+# ==========================
+def marcar_camino(laberinto, camino, nombre_algoritmo, archivo="recorridos.xlsx"):
+    lab_copia = deepcopy(laberinto)
+    for (i, j) in camino:
+        if lab_copia[i][j] not in ["S", "E"]:  # no sobreescribir inicio y fin
+            lab_copia[i][j] = "*"
+    df = pd.DataFrame(lab_copia)
+
+    # Guardar hoja en Excel
+    try:
+        with pd.ExcelWriter(archivo, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
+            df.to_excel(writer, sheet_name=nombre_algoritmo, header=False, index=False)
+    except FileNotFoundError:
+        with pd.ExcelWriter(archivo, mode="w", engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name=nombre_algoritmo, header=False, index=False)
+
+    # Abrir archivo para colorear celdas
+    wb = load_workbook(archivo)
+    ws = wb[nombre_algoritmo]
+    verde = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
+
+    for (i, j) in camino:
+        celda = ws.cell(row=i+1, column=j+1)  # +1 por índice Excel
+        celda.fill = verde
+
+    wb.save(archivo)
+
+# ==========================
+# 8. Ejecutar algoritmos y guardar
 # ==========================
 camino_dfs = dfs(laberinto, inicio, fin)
 camino_bfs = bfs(laberinto, inicio, fin)
 camino_astar = a_star(laberinto, inicio, fin)
 
 print("DFS encontró un camino de longitud:", len(camino_dfs))
-print(camino_dfs)
+print("BFS encontró un camino de longitud:", len(camino_bfs))
+print("A* encontró un camino de longitud:", len(camino_astar))
 
-print("\nBFS encontró un camino de longitud:", len(camino_bfs))
-print(camino_bfs)
+# Guardar en Excel con colores
+archivo_salida = "recorridos.xlsx"
+marcar_camino(laberinto, camino_dfs, "DFS", archivo_salida)
+marcar_camino(laberinto, camino_bfs, "BFS", archivo_salida)
+marcar_camino(laberinto, camino_astar, "A", archivo_salida)
 
-print("\nA* encontró un camino de longitud:", len(camino_astar))
-print(camino_astar)
+print(f"\nSe guardaron los recorridos en {archivo_salida}")
