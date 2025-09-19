@@ -12,7 +12,7 @@ def himmelblau(x, y):
 
 # Función de recocido simulado con criterio de Boltzmann
 def simulated_annealing(x0, y0, T=1000, T_min=1e-6, alpha=0.95, steps_per_T=100):
-    """func: función objetivo (Himmelblau).
+    """
     x0, y0: punto inicial aleatorio.
     T: temperatura inicial (empezamos “calientes”).
     T_min: temperatura mínima (criterio de parada).
@@ -21,7 +21,6 @@ def simulated_annealing(x0, y0, T=1000, T_min=1e-6, alpha=0.95, steps_per_T=100)
     # Estado inicial
     estado_actual = (x0, y0)
     valor_actual = himmelblau(*estado_actual)
-    
     mejor_estado = estado_actual
     mejor_valor = valor_actual
     
