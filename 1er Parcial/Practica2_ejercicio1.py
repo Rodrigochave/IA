@@ -13,7 +13,8 @@ def load_maze(filename):
             cleaned_row = [cell.strip().replace('"', '').replace("'", "") for cell in row]
             maze.append(cleaned_row)
     return maze
-
+''' Lee el archivo CSV y limpia cada celda (elimina espacios y comillas)
+    Retorna el laberinto como una lista de listas (matriz)'''
 def find_start_end(maze):
     start = None
     end = None
@@ -30,21 +31,27 @@ def find_start_end(maze):
         raise ValueError("No se encontró el punto final 'E'")
     
     return start, end
-
+'''    Busca las coordenadas de 'S' (start) y 'E' (end)
+Lanza excepción si no encuentra alguno de ellos'''
 def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
+''' Heurística utilizada: Distancia de Manhattan
+    Calcula la suma de las diferencias absolutas en las coordenadas X e Y
+    Es admisible (nunca sobrestima el costo real) para movimientos en 4 direcciones'''
 def a_star(maze, start, end):
-    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-    open_list = []
+    # Inicialización de estructuras de datos
+    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Movimientos posibles
+    open_list = []  # Cola de prioridad
     heapq.heappush(open_list, (0, start))
-    g_score = {start: 0}
-    f_score = {start: heuristic(start, end)}
-    came_from = {}
-    closed_set = set()
+    g_score = {start: 0}  # Costo desde el inicio
+    f_score = {start: heuristic(start, end)}  # Costo estimado total
+    came_from = {}  # Para reconstruir el camino
+    closed_set = set()  # Nodos ya evaluados
 
     while open_list:
         _, current = heapq.heappop(open_list)
+        
+        # Si llegamos al final, reconstruimos el camino
         if current == end:
             path = []
             while current in came_from:
@@ -55,31 +62,38 @@ def a_star(maze, start, end):
             return path
 
         closed_set.add(current)
+        
+        # Explorar vecinos
         for dx, dy in neighbors:
             neighbor = (current[0] + dx, current[1] + dy)
             
+            # Verificar límites del laberinto
             if not (0 <= neighbor[0] < len(maze) and 0 <= neighbor[1] < len(maze[0])):
                 continue
             
+            # Verificar obstáculos
             if maze[neighbor[0]][neighbor[1]] == '1':
                 continue
                 
+            # Calcular nuevo costo
             tentative_g = g_score[current] + 1
             
+            # Si ya fue evaluado con mejor costo, saltar
             if neighbor in closed_set and tentative_g >= g_score.get(neighbor, float('inf')):
                 continue
                 
+            # Actualizar si encontramos un mejor camino
             if tentative_g < g_score.get(neighbor, float('inf')):
                 came_from[neighbor] = current
                 g_score[neighbor] = tentative_g
                 f_score[neighbor] = tentative_g + heuristic(neighbor, end)
                 heapq.heappush(open_list, (f_score[neighbor], neighbor))
     
-    return None
+    return None  # No se encontró camino
 
 def dfs(maze, start, end):
-    stack = [(start, [start])]
-    visited = set()
+    stack = [(start, [start])]  # Pila con (nodo_actual, camino_hasta_ahora)
+    visited = set()  # Nodos visitados
     
     while stack:
         (current, path) = stack.pop()
@@ -88,50 +102,60 @@ def dfs(maze, start, end):
             
         visited.add(current)
         
+        # Si encontramos el final, retornar camino
         if current == end:
             return path
             
+        # Explorar vecinos
         for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             neighbor = (current[0] + dx, current[1] + dy)
             
+            # Verificar límites
             if not (0 <= neighbor[0] < len(maze) and 0 <= neighbor[1] < len(maze[0])):
                 continue
                 
+            # Verificar obstáculos
             if maze[neighbor[0]][neighbor[1]] == '1':
                 continue
                 
+            # Agregar a la pila si no ha sido visitado
             if neighbor not in visited:
                 stack.append((neighbor, path + [neighbor]))
     
-    return None
+    return None  # No se encontró camino
 
 def bfs(maze, start, end):
-    queue = deque([(start, [start])])
-    visited = set()
+    queue = deque([(start, [start])])  # Cola con (nodo_actual, camino_hasta_ahora)
+    visited = set()  # Nodos visitados
     
     while queue:
-        (current, path) = queue.popleft()
+        (current, path) = queue.popleft()  # Extraer el primero (FIFO)
         if current in visited:
             continue
             
         visited.add(current)
         
+        # Si encontramos el final, retornar camino
         if current == end:
             return path
             
+        # Explorar vecinos
         for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             neighbor = (current[0] + dx, current[1] + dy)
             
+            # Verificar límites
             if not (0 <= neighbor[0] < len(maze) and 0 <= neighbor[1] < len(maze[0])):
                 continue
                 
+            # Verificar obstáculos
             if maze[neighbor[0]][neighbor[1]] == '1':
                 continue
                 
+            # Agregar a la cola si no ha sido visitado
             if neighbor not in visited:
                 queue.append((neighbor, path + [neighbor]))
     
-    return None
+    return None  # No se encontró camino
 
 def create_excel_with_colored_solutions(maze, a_star_path, dfs_path, bfs_path, filename):
     # Crear un nuevo libro de trabajo de Excel
