@@ -1,5 +1,5 @@
 import tkinter as tk
-N = 3          # Tamaño del tablero (4x4)
+N = 4          # Tamaño del tablero (4x4)
 MAX_DEPTH = 5   # Profundidad máxima de búsqueda del algoritmo Minimax
 
 # =============================================================================

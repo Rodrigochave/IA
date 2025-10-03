@@ -4,7 +4,7 @@
 #include <math.h>
 #include <string.h>
 
-#define N 3
+#define N 4
 #define MAX_DEPTH 3
 #define EMPTY ' '
 #define PLAYER 'O'
@@ -22,7 +22,7 @@ typedef struct {
 } PriorityMove;
 
 // Prototipos de funciones
-char check_winner(char board[N][N]);
+int check_winner(char board[N][N]);
 int evaluate_line(int line[N][2], char board[N][N]);
 int evaluate_board(char board[N][N]);
 int get_move_priority(int i, int j, char board[N][N]);
@@ -31,15 +31,15 @@ Move best_move(char board[N][N]);
 void print_board(char board[N][N]);
 void initialize_board(char board[N][N]);
 int get_human_move(char board[N][N]);
+int is_board_full(char board[N][N]);
 
 // =============================================================================
-// FUNCIÓN PRINCIPAL
+// FUNCIÓN PRINCIPAL - CORREGIDA
 // =============================================================================
 int main() {
     char board[N][N];
     int game_over = 0;
-    int row, col;
-    char result;
+    int result;
     Move computer_move;
     
     printf("=== GATO %dx%d con MINIMAX y PODA ALFA-BETA ===\n", N, N);
@@ -52,7 +52,11 @@ int main() {
         // Turno del jugador humano
         print_board(board);
         
-        if (check_winner(board) != 0) break;
+        // Verificar estado del juego antes del movimiento
+        result = check_winner(board);
+        if (result != 0 || is_board_full(board)) {
+            break;
+        }
         
         printf("Tu turno (%c). Ingresa fila y columna (ej: 1 2): ", PLAYER);
         if (get_human_move(board) == -1) {
@@ -60,12 +64,23 @@ int main() {
             continue;
         }
         
-        // Verificar si el jugador gano
+        // Verificar estado después del movimiento humano
         result = check_winner(board);
         if (result != 0) {
             print_board(board);
-            if (result == -1) printf("¡Felicidades! Ganaste.\n");
-            else if (result == 0) printf("¡Empate!\n");
+            if (result == -1) {
+                printf("¡Felicidades! Ganaste.\n");
+            } else if (result == 1) {
+                printf("¡La computadora gana!\n");
+            }
+            game_over = 1;
+            break;
+        }
+        
+        // Verificar empate después del movimiento humano
+        if (is_board_full(board)) {
+            print_board(board);
+            printf("¡Empate!\n");
             game_over = 1;
             break;
         }
@@ -80,17 +95,53 @@ int main() {
                    computer_move.i + 1, computer_move.j + 1);
         }
         
-        // Verificar resultado después del movimiento de la computadora
+        // Verificar estado después del movimiento de la computadora
         result = check_winner(board);
         if (result != 0) {
             print_board(board);
-            if (result == 1) printf("¡La computadora gana!\n");
-            else if (result == 0) printf("¡Empate!\n");
+            if (result == 1) {
+                printf("¡La computadora gana!\n");
+            } else if (result == -1) {
+                printf("¡Felicidades! Ganaste.\n");
+            }
             game_over = 1;
+            break;
+        }
+        
+        // Verificar empate después del movimiento de la computadora
+        if (is_board_full(board)) {
+            print_board(board);
+            printf("¡Empate!\n");
+            game_over = 1;
+            break;
+        }
+    }
+    
+    // Verificación final por si salimos del bucle sin detectar empate
+    if (!game_over) {
+        result = check_winner(board);
+        if (result == 0 && is_board_full(board)) {
+            print_board(board);
+            printf("¡Empate!\n");
         }
     }
     
     return 0;
+}
+
+// =============================================================================
+// FUNCIÓN PARA VERIFICAR SI EL TABLERO ESTÁ LLENO
+// =============================================================================
+int is_board_full(char board[N][N]) {
+    int i, j;
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (board[i][j] == EMPTY) {
+                return 0; // No está lleno
+            }
+        }
+    }
+    return 1; // Está lleno
 }
 
 // =============================================================================
@@ -136,59 +187,52 @@ void print_board(char board[N][N]) {
 }
 
 // =============================================================================
-// DETECCIÓN DE GANADOR
+// DETECCIÓN DE GANADOR - SIMPLIFICADA Y CORREGIDA
 // =============================================================================
-char check_winner(char board[N][N]) {
+int check_winner(char board[N][N]) {
     int i, j;
-    int row_x, row_o, col_x, col_o;
-    int diag1_x, diag1_o, diag2_x, diag2_o;
-    int empty_found;
     
-    // Verificar filas y columnas
+    // Verificar filas
     for (i = 0; i < N; i++) {
-        row_x = 1; row_o = 1; col_x = 1; col_o = 1;
-        
+        int row_x = 1, row_o = 1;
         for (j = 0; j < N; j++) {
-            // Verificar fila i
             if (board[i][j] != COMPUTER) row_x = 0;
             if (board[i][j] != PLAYER) row_o = 0;
-            
-            // Verificar columna i
-            if (board[j][i] != COMPUTER) col_x = 0;
-            if (board[j][i] != PLAYER) col_o = 0;
         }
-        
-        if (row_x || col_x) return 1;  // Gana X
-        if (row_o || col_o) return -1; // Gana O
+        if (row_x) return 1;
+        if (row_o) return -1;
     }
     
-    // Verificar diagonales
-    diag1_x = 1; diag1_o = 1; diag2_x = 1; diag2_o = 1;
+    // Verificar columnas
+    for (j = 0; j < N; j++) {
+        int col_x = 1, col_o = 1;
+        for (i = 0; i < N; i++) {
+            if (board[i][j] != COMPUTER) col_x = 0;
+            if (board[i][j] != PLAYER) col_o = 0;
+        }
+        if (col_x) return 1;
+        if (col_o) return -1;
+    }
+    
+    // Verificar diagonal principal
+    int diag1_x = 1, diag1_o = 1;
     for (i = 0; i < N; i++) {
         if (board[i][i] != COMPUTER) diag1_x = 0;
         if (board[i][i] != PLAYER) diag1_o = 0;
+    }
+    if (diag1_x) return 1;
+    if (diag1_o) return -1;
+    
+    // Verificar diagonal secundaria
+    int diag2_x = 1, diag2_o = 1;
+    for (i = 0; i < N; i++) {
         if (board[i][N-1-i] != COMPUTER) diag2_x = 0;
         if (board[i][N-1-i] != PLAYER) diag2_o = 0;
     }
+    if (diag2_x) return 1;
+    if (diag2_o) return -1;
     
-    if (diag1_x || diag2_x) return 1;  // Gana X
-    if (diag1_o || diag2_o) return -1; // Gana O
-    
-    // Verificar empate
-    empty_found = 0;
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            if (board[i][j] == EMPTY) {
-                empty_found = 1;
-                break;
-            }
-        }
-        if (empty_found) break;
-    }
-    
-    if (!empty_found) return 0; // Empate
-    
-    return 0; // Juego continúa
+    return 0; // No hay ganador todavía
 }
 
 // =============================================================================
@@ -258,6 +302,7 @@ int get_move_priority(int i, int j, char board[N][N]) {
     if (check_winner(test_board) == 1) return 10000;
     
     // Verificar si bloquea al oponente
+    memcpy(test_board, board, sizeof(test_board));
     test_board[i][j] = PLAYER;
     if (check_winner(test_board) == -1) return 9000;
     
@@ -303,12 +348,17 @@ int get_move_priority(int i, int j, char board[N][N]) {
 int minimax_alfa_beta(char board[N][N], int alpha, int beta, int maximizing, int depth) {
     int i, j, k, m;
     int eval, max_eval, min_eval;
-    char result = check_winner(board);
+    int result = check_winner(board);
     PriorityMove moves[N*N];
     int move_count = 0;
     
+    // Si hay un ganador o empate, retornar evaluación
     if (result != 0) {
         return result * (100 - depth);
+    }
+    
+    if (is_board_full(board)) {
+        return 0; // Empate
     }
     
     if (depth >= MAX_DEPTH) {
