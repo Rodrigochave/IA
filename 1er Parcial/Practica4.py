@@ -228,30 +228,29 @@ def detect_and_handle_outliers_advanced(df, label_encoded_cols):
         print("No se detectaron outliers significativos")
         return df, []
 
-def normalize_dataset_advanced(df, label_encoded_cols):
+def normalize_dataset_advanced(df, label_encoded_cols, target_col='Type'):
     print(f"\nNORMALIZANDO DATASET")
     
-    # Solo normalizar columnas label-encoded (las one-hot ya están en 0-1)
-    cols_to_normalize = [col for col in label_encoded_cols if col in df.columns]
+    # Incluir TODAS las columnas numéricas excepto la columna objetivo
+    cols_to_normalize = [
+        col for col in df.select_dtypes(include=[np.number]).columns 
+        if col != target_col
+    ]
     
     if len(cols_to_normalize) == 0:
-        print("No hay variables label-encoded para normalizar")
+        print("No hay variables numéricas para normalizar")
         return df, None
     
-    print(f"Normalizando {len(cols_to_normalize)} variables label-encoded...")
+    print(f"Normalizando {len(cols_to_normalize)} variables numéricas (sin incluir '{target_col}')...")
     
     df_normalized = df.copy()
-    
-    # Usar StandardScaler para normalización
     scaler = StandardScaler()
     method_name = "StandardScaler (media=0, desviación=1)"
-    
     print(f"   • Método: {method_name}")
     
-    # Aplicar normalización
+    # Aplicar normalización solo a las variables numéricas (no al target)
     df_normalized[cols_to_normalize] = scaler.fit_transform(df[cols_to_normalize])
     
-    # Verificar resultados
     print(f"Normalización completada")
     print(f"   • Estadísticas después de normalizar:")
     stats_after = pd.DataFrame({
@@ -263,6 +262,7 @@ def normalize_dataset_advanced(df, label_encoded_cols):
     print(stats_after.round(3))
     
     return df_normalized, scaler
+
 
 # Cargar datos asegurando que se detecten los valores faltantes
 def load_data_with_missing_detection(file_path):
@@ -303,7 +303,7 @@ def complete_preprocessing_pipeline_improved(file_path):
     df_processed, outlier_info = detect_and_handle_outliers_advanced(df_imputed, label_encoded_cols)
     
     # 7. Normalizar el dataset (solo variables label-encoded)
-    df_final, scaler = normalize_dataset_advanced(df_processed, label_encoded_cols)
+    df_final, scaler = normalize_dataset_advanced(df_processed, label_encoded_cols, target_col='class')
     
     # 8. Resumen final
     print("\n" + "=" * 60)
@@ -330,11 +330,18 @@ def complete_preprocessing_pipeline_improved(file_path):
 # USO COMPLETO MEJORADO
 if __name__ == "__main__":
     file_path = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/mushrooms.csv'
-    
     try:
         # Ejecutar pipeline mejorado
         df_final, encoding_info, outlier_info, imputation_info, scaler = complete_preprocessing_pipeline_improved(file_path)
-        
+        # === GUARDAR EL DATASET FINAL ===
+        output_path_csv = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/mushrooms_preprocesado.csv'
+        output_path_excel = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/mushrooms_preprocesado.xlsx'
+
+        # Guardar en CSV
+        df_final.to_csv(output_path_csv, index=False)
+
+        # Guardar también en Excel (opcional)
+        df_final.to_excel(output_path_excel, index=False)
         print(f"\nMUESTRA DEL DATASET FINAL:")
         print(df_final.head())
     except Exception as e:

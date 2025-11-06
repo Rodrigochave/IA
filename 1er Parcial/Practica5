@@ -1,0 +1,120 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.preprocessing import LabelEncoder
+
+# ========================================
+# CLASIFICADOR DE DISTANCIA MÍNIMA
+# ========================================
+
+def distancia_minima_clasificador(X_train, y_train, X_test):
+    """Clasifica cada muestra de X_test según el centroide más cercano."""
+    etiquetas = np.unique(y_train)
+    centroides = []
+
+    for etiqueta in etiquetas:
+        centroides.append(np.mean(X_train[y_train == etiqueta], axis=0))
+    
+    centroides = np.array(centroides)
+    
+    predicciones = []
+    for muestra in X_test:
+        distancias = np.linalg.norm(centroides - muestra, axis=1)
+        predicciones.append(etiquetas[np.argmin(distancias)])
+    
+    return np.array(predicciones), etiquetas, centroides
+
+
+# ========================================
+# FUNCIONES DE EVALUACIÓN
+# ========================================
+
+def imprimir_matriz_confusion(y_true, y_pred, etiquetas):
+    """Imprime la matriz de confusión con encabezados y métricas por clase."""
+    matriz = confusion_matrix(y_true, y_pred, labels=etiquetas)
+    print("\nMatriz de Confusión:\n")
+
+    # Encabezados
+    encabezado = "      " + "  ".join([f"{e:>5}" for e in etiquetas])
+    print(encabezado)
+    print("     " + "------" * len(etiquetas))
+
+    # Filas
+    for i, fila in enumerate(matriz):
+        print(f"{etiquetas[i]:>3} | " + "  ".join([f"{v:>5}" for v in fila]))
+
+    # Cálculo de TP, FP, FN, TN por clase
+    print("\nMétricas por clase:")
+    total = np.sum(matriz)
+    for i, etiqueta in enumerate(etiquetas):
+        TP = matriz[i, i]
+        FP = np.sum(matriz[:, i]) - TP
+        FN = np.sum(matriz[i, :]) - TP
+        TN = total - (TP + FP + FN)
+        print(f"Clase {etiqueta}: TP={TP}, FP={FP}, FN={FN}, TN={TN}")
+
+
+# ========================================
+# VALIDACIÓN HOLD-OUT 70/30
+# ========================================
+
+def validacion_holdout(X, y):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
+    y_pred, etiquetas, _ = distancia_minima_clasificador(X_train, y_train, X_test)
+    acc = accuracy_score(y_test, y_pred)
+    
+    print("=== VALIDACIÓN HOLD-OUT (70/30) ===")
+    print(f"Accuracy: {acc:.4f}")
+    imprimir_matriz_confusion(y_test, y_pred, etiquetas)
+    print("="*40)
+
+
+# ========================================
+# VALIDACIÓN 10-FOLD CROSS-VALIDATION
+# ========================================
+
+def validacion_cross(X, y, n_splits=10):
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    accuracies = []
+
+    print("\n=== VALIDACIÓN 10-FOLD CROSS-VALIDATION ===")
+    for i, (train_index, test_index) in enumerate(kf.split(X)):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+        y_pred, _, _ = distancia_minima_clasificador(X_train, y_train, X_test)
+        acc = accuracy_score(y_test, y_pred)
+        accuracies.append(acc)
+        print(f"Fold {i+1:02d} | Accuracy = {acc:.4f}")
+
+    print("\n--- Resultados promedio ---")
+    print(f"Accuracy promedio: {np.mean(accuracies):.4f}")
+    print(f"Desviación estándar: {np.std(accuracies):.4f}")
+    print("="*40)
+
+
+# ========================================
+# PROGRAMA PRINCIPAL
+# ========================================
+
+if __name__ == "__main__":
+    # Cargar dataset con pandas
+    path = "C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/glass_preprocesado.csv"
+    df = pd.read_csv(path)
+
+    # Verificar que la columna objetivo exista
+    target_col = "Type"  # cambia si tu dataset usa otro nombre
+    if target_col not in df.columns:
+        raise ValueError(f"No existe la columna '{target_col}' en el CSV.")
+
+    # Separar características y etiquetas
+    X = df.drop(columns=[target_col]).values
+    y = df[target_col].values
+
+    # Asegurar que las etiquetas sean numéricas
+    y = LabelEncoder().fit_transform(y)
+
+    # Ejecutar validaciones
+    validacion_holdout(X, y)
+    validacion_cross(X, y)
