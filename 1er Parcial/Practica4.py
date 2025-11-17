@@ -303,7 +303,7 @@ def complete_preprocessing_pipeline_improved(file_path):
     df_processed, outlier_info = detect_and_handle_outliers_advanced(df_imputed, label_encoded_cols)
     
     # 7. Normalizar el dataset (solo variables label-encoded)
-    df_final, scaler = normalize_dataset_advanced(df_processed, label_encoded_cols, target_col='class')
+    df_final, scaler = normalize_dataset_advanced(df_processed, label_encoded_cols, target_col='Type')
     
     # 8. Resumen final
     print("\n" + "=" * 60)
@@ -329,13 +329,13 @@ def complete_preprocessing_pipeline_improved(file_path):
 
 # USO COMPLETO MEJORADO
 if __name__ == "__main__":
-    file_path = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/mushrooms.csv'
+    file_path = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/glass.xls'
     try:
         # Ejecutar pipeline mejorado
         df_final, encoding_info, outlier_info, imputation_info, scaler = complete_preprocessing_pipeline_improved(file_path)
         # === GUARDAR EL DATASET FINAL ===
-        output_path_csv = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/mushrooms_preprocesado.csv'
-        output_path_excel = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/mushrooms_preprocesado.xlsx'
+        output_path_csv = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/glass_preprocesado.csv'
+        output_path_excel = 'C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/glass_preprocesado.xlsx'
 
         # Guardar en CSV
         df_final.to_csv(output_path_csv, index=False)
