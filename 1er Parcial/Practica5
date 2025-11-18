@@ -100,7 +100,7 @@ def validacion_cross(X, y, n_splits=10):
 
 if __name__ == "__main__":
     # Cargar dataset con pandas
-    path = "C:/Users/Rodri/OneDrive/Documentos/GitHub/IA/1er Parcial/glass_preprocesado.csv"
+    path = "C:/Users/Rorro/Documents/GitHub/IA/1er Parcial/glass_preprocesado.csv"
     df = pd.read_csv(path)
 
     # Verificar que la columna objetivo exista
